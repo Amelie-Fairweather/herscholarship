@@ -5,14 +5,7 @@ export default function Nav({ go, open, setOpen, account, readerKind, onLogout }
         Skip to content
       </a>
       <div className="wrap nav-row">
-        <a
-          className="brand"
-          href="#home"
-          onClick={(event) => {
-            event.preventDefault();
-            go("#home");
-          }}
-        >
+        <a className="brand" href="https://hereducation.org">
           <span className="logo-mark" aria-hidden="true">
             <img src="/her-logo.jpg" alt="" />
           </span>
