@@ -125,7 +125,7 @@ export default function Home({ go, account, submitted }) {
           <p className="lede">
             {submitted
               ? 'Your application is in. Open the fund to read your answers.'
-              : 'A $10,000 scholarship for a high school senior. Create an account, see what the fund is for, then take the eligibility quiz.'}
+              : 'A $10,000 annual scholarship aimed at promoting the advancement of high school aged students into higher education. Brought to you by students, for students ♡♡♡'}
           </p>
           <div className="hero-actions">
             {account ? (
