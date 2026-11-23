@@ -40,6 +40,47 @@ create table if not exists public.application_starts (
   constraint application_starts_name_check check (char_length(name) <= 120)
 );
 
+-- Two files can share a number if they were submitted before this index existed.
+-- The earliest submitted file keeps the number. Each extra copy gets a new one.
+do $$
+declare
+  duplicate_id uuid;
+  candidate text;
+  tries int;
+begin
+  perform set_config('her.moving', '1', true);
+  for duplicate_id in
+    select user_id
+    from (
+      select
+        user_id,
+        row_number() over (
+          partition by file_number
+          order by (status = 'draft'), submitted_at nulls last, updated_at, user_id
+        ) as copy_number
+      from public.applications
+      where btrim(file_number) <> ''
+    ) ranked
+    where copy_number > 1
+  loop
+    tries := 0;
+    loop
+      tries := tries + 1;
+      candidate := 'HER-' || lpad((floor(random() * 9000) + 1000)::int::text, 4, '0');
+      exit when not exists (
+        select 1 from public.applications existing where existing.file_number = candidate
+      );
+      if tries > 30 then
+        candidate := 'HER-' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 8);
+        exit;
+      end if;
+    end loop;
+    update public.applications
+    set file_number = candidate
+    where user_id = duplicate_id;
+  end loop;
+end $$;
+
 create unique index if not exists applications_file_number_unique
   on public.applications (file_number)
   where file_number <> '';
