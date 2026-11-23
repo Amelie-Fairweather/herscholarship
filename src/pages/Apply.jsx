@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AcademicsStep, ActivitiesStep, LinksStep, LongStep, NeedStep, ReviewStep, ShortStep } from '../apply/Steps';
 import { ACTIVITIES, STEPS, STATUS_META, activityItems, prettyWhen } from '../lib/content';
-import { explainSaveError, pushQueued } from '../lib/remote';
+import { explainSaveError, pushQueued, recordApplicationStart } from '../lib/remote';
 import { fileId } from '../lib/storage';
 import { problemsFor, readyCount } from '../lib/validate';
 
@@ -35,6 +35,10 @@ export default function Apply({ step, go, application, setApplication, savedAt, 
   useEffect(() => {
     setTried(false);
   }, [step]);
+
+  useEffect(() => {
+    if (account && quiz?.eligible) recordApplicationStart(account);
+  }, [account, quiz?.eligible]);
 
   useEffect(() => {
     if (!account || application.meta.submittedAt) return;

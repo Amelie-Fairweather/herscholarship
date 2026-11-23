@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Field } from "../components/Bits";
 import SchoolLookup from "../components/SchoolLookup";
 import { INCOME_CAP, PER_PERSON, incomeLine, money, qualifies } from "../lib/fund";
+import { clearApplicationStart, recordApplicationStart } from "../lib/remote";
 import { authMessage, supabase } from "../lib/supabase";
 
 const GRADES = [
@@ -71,6 +72,8 @@ export default function Quiz({ go, account, quiz, setSession }) {
       ...current,
       quizzes: { ...current.quizzes, [account.id]: saved },
     }));
+    if (verdict.eligible) await recordApplicationStart(account);
+    else await clearApplicationStart(account.id);
     setResult(verdict);
     setEditing(false);
     window.scrollTo({ top: 0, behavior: "smooth" });

@@ -52,6 +52,12 @@ function mailHref(value) {
   return `mailto:${email}`;
 }
 
+function mailAllHref(emails) {
+  const list = [...new Set(emails.map((value) => String(value || '').trim().toLowerCase()).filter((email) => mailHref(email)))];
+  if (!list.length) return '';
+  return `mailto:?bcc=${encodeURIComponent(list.join(','))}&subject=${encodeURIComponent('Her Education Required')}`;
+}
+
 function hasContact(contact) {
   if (!contact) return false;
   return ['studentPhone', 'studentEmail', 'parentName', 'parentPhone', 'parentEmail'].some((key) => String(contact[key] || '').trim());
@@ -110,6 +116,8 @@ export default function Read({ account, readerKind }) {
   const [urls, setUrls] = useState({ transcript: '', extra: '' });
   const [region, setRegion] = useState('');
   const [level, setLevel] = useState('');
+  const [startedCount, setStartedCount] = useState(null);
+  const [startEmails, setStartEmails] = useState([]);
 
   async function loadFiles(keepId) {
     const { data, error } = await supabase
@@ -128,6 +136,14 @@ export default function Read({ account, readerKind }) {
     }
     setLoadError('');
     setFiles(data || []);
+    const started = await supabase.rpc('started_count');
+    setStartedCount(started.error ? null : Number(started.data) || 0);
+    if (readerKind === 'adult') {
+      const startRes = await supabase.from('application_starts').select('email');
+      setStartEmails(startRes.error ? [] : (startRes.data || []).map((row) => row.email));
+    } else {
+      setStartEmails([]);
+    }
     setSelectedId((current) => keepId || current || null);
     if (data?.length) {
       const ids = data.map((file) => file.user_id);
@@ -175,6 +191,12 @@ export default function Read({ account, readerKind }) {
       }),
     [files, needs],
   );
+
+  const everyoneMail = useMemo(() => {
+    if (readerKind !== 'adult') return '';
+    const fromFiles = Object.values(contacts).flatMap((contact) => [contact?.studentEmail, contact?.parentEmail]);
+    return mailAllHref([...startEmails, ...fromFiles]);
+  }, [contacts, readerKind, startEmails]);
 
   const regions = useMemo(() => {
     const counts = new Map();
@@ -367,6 +389,20 @@ export default function Read({ account, readerKind }) {
       <header className="wrap page-head">
         <p className="eyebrow">Readers only</p>
         <h1>Reading desk.</h1>
+        <div className="started-card">
+          <div>
+            <p className="eyebrow">Applications started</p>
+            <strong>{startedCount == null ? '—' : startedCount}</strong>
+          </div>
+          {everyoneMail ? (
+            <a className="started-mail" href={everyoneMail} aria-label="Email everyone who started">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5v-11Z" />
+                <path d="m4 7 8 6 8-6" />
+              </svg>
+            </a>
+          ) : null}
+        </div>
         <p className="lede">
           {region
             ? level

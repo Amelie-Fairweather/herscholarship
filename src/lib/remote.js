@@ -449,3 +449,18 @@ export function useCloudApplication({ account, quiz, application, setApplication
 
   return { phase: cloudOn || phase === 'error' ? phase : 'loading', message };
 }
+
+export async function recordApplicationStart(account) {
+  const email = String(account?.email || '').trim().toLowerCase();
+  if (!account?.id || !email.includes('@')) return;
+  const name = String(account.name || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  await supabase.from('application_starts').upsert(
+    { user_id: account.id, email, name },
+    { onConflict: 'user_id' },
+  );
+}
+
+export async function clearApplicationStart(userId) {
+  if (!userId) return;
+  await supabase.from('application_starts').delete().eq('user_id', userId);
+}

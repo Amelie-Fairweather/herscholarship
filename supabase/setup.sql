@@ -31,6 +31,15 @@ create table if not exists public.application_contact (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.application_starts (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  email text not null,
+  name text not null default '',
+  started_at timestamptz not null default now(),
+  constraint application_starts_email_check check (position('@' in email) > 1),
+  constraint application_starts_name_check check (char_length(name) <= 120)
+);
+
 create unique index if not exists applications_file_number_unique
   on public.applications (file_number)
   where file_number <> '';
@@ -463,6 +472,55 @@ create policy "readers write notes"
   to authenticated
   with check (public.reader_kind() = 'adult' and author_id = auth.uid());
 
+alter table public.application_starts enable row level security;
+
+drop policy if exists "owner inserts start" on public.application_starts;
+create policy "owner inserts start"
+  on public.application_starts for insert
+  to authenticated
+  with check (
+    user_id = auth.uid()
+    and lower(email) = lower(auth.jwt() ->> 'email')
+  );
+
+drop policy if exists "owner updates start" on public.application_starts;
+create policy "owner updates start"
+  on public.application_starts for update
+  to authenticated
+  using (user_id = auth.uid())
+  with check (
+    user_id = auth.uid()
+    and lower(email) = lower(auth.jwt() ->> 'email')
+  );
+
+drop policy if exists "owner deletes start" on public.application_starts;
+create policy "owner deletes start"
+  on public.application_starts for delete
+  to authenticated
+  using (user_id = auth.uid());
+
+drop policy if exists "adults read starts" on public.application_starts;
+create policy "adults read starts"
+  on public.application_starts for select
+  to authenticated
+  using (public.reader_kind() = 'adult');
+
+create or replace function public.started_count()
+returns integer
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case
+    when public.reader_kind() is null then 0
+    else (select count(*)::integer from public.application_starts)
+  end;
+$$;
+
+revoke all on function public.started_count() from public;
+grant execute on function public.started_count() to authenticated;
+
 drop policy if exists "owner reads events" on public.status_events;
 create policy "owner reads events"
   on public.status_events for select
@@ -481,6 +539,7 @@ revoke all on public.application_need from anon;
 revoke all on public.application_contact from anon;
 revoke all on public.review_notes from anon;
 revoke all on public.status_events from anon;
+revoke all on public.application_starts from anon;
 
 grant select on public.readers to authenticated;
 grant select, insert, update on public.applications to authenticated;
@@ -488,6 +547,7 @@ grant select, insert, update on public.application_need to authenticated;
 grant select, insert, update on public.application_contact to authenticated;
 grant select, insert on public.review_notes to authenticated;
 grant select on public.status_events to authenticated;
+grant select, insert, update, delete on public.application_starts to authenticated;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
