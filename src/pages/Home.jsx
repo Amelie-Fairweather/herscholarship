@@ -109,7 +109,7 @@ function HeroSlides() {
   );
 }
 
-export default function Home({ go, account }) {
+export default function Home({ go, account, submitted }) {
   const first = account?.name?.split(' ')[0];
 
   return (
@@ -123,8 +123,9 @@ export default function Home({ go, account }) {
             <em> Required.</em>
           </h1>
           <p className="lede">
-            A $10,000 scholarship for a high school senior. Create an account, see what the fund is for, then take the
-            eligibility quiz.
+            {submitted
+              ? 'Your application is in. Open the fund to read your answers.'
+              : 'A $10,000 scholarship for a high school senior. Create an account, see what the fund is for, then take the eligibility quiz.'}
           </p>
           <div className="hero-actions">
             {account ? (

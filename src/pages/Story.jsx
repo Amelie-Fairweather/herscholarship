@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { STATUS_META } from "../lib/content";
 import { STORY } from "../lib/fund";
 
 const ARRIVALS = ["left", "right", "bottom", "top"];
@@ -160,6 +161,37 @@ function withLinks(text) {
     ) : (
       part
     ),
+  );
+}
+
+function latestNote(application) {
+  const note = [...(application.meta.history || [])]
+    .reverse()
+    .find((item) => item.status && item.status !== "submitted" && item.status !== "draft" && String(item.note || "").trim());
+  return note ? String(note.note).trim() : "";
+}
+
+export function SubmittedFund({ go, application }) {
+  const status = application.meta.status;
+  const waiting = !status || status === "draft" || status === "submitted" || status === "in_review";
+  const meta = STATUS_META[status] || STATUS_META.submitted;
+  const note = latestNote(application);
+
+  return (
+    <div className="page">
+      <section className="wrap done-screen">
+        <p className="eyebrow">The fund</p>
+        <h1>Congrats, you submitted!</h1>
+        <p className="lede">Look out for finalist status notifications.</p>
+        {waiting ? null : <p className={`pill tone-${meta.tone}`}>{meta.label}</p>}
+        {note ? <p>{note}</p> : null}
+        <div className="hero-actions">
+          <button type="button" className="btn btn-primary" onClick={() => go("#apply/review")}>
+            Read answers
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 

@@ -9,7 +9,7 @@ import Apply from "./pages/Apply";
 import Home from "./pages/Home";
 import Quiz from "./pages/Quiz";
 import Read from "./pages/Read";
-import Story from "./pages/Story";
+import Story, { SubmittedFund } from "./pages/Story";
 
 const PAGES = ["home", "login", "create", "story", "quiz", "apply", "read"];
 
@@ -77,20 +77,23 @@ export default function App() {
   }
 
   let screen = null;
-  if (route.page === "home") screen = <Home go={go} account={account} />;
+  const submitted = Boolean(application.meta.submittedAt);
+  if (route.page === "home") screen = <Home go={go} account={account} submitted={submitted} />;
   else if (route.page === "login" || route.page === "create") {
     screen = (
       <Account mode={route.page} go={go} account={account} />
     );
   } else if (route.page === "story") {
-    screen = account ? (
-      <Story go={go} />
-    ) : (
+    screen = !account ? (
       <NeedAccount
         go={go}
         title="Create an account to open the fund."
         copy="The flip-through is for seniors who have an account."
       />
+    ) : submitted ? (
+      <SubmittedFund go={go} application={application} />
+    ) : (
+      <Story go={go} />
     );
   } else if (route.page === "quiz") {
     screen = account ? (
